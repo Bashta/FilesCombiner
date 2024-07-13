@@ -1,8 +1,8 @@
 class Swiftfilescombiner < Formula
   desc "CLI utility to combine Swift files"
   homepage "https://github.com/bashta/SwiftFilesCombiner"
-  url "https://github.com/Bashta/FilesCombiner/archive/refs/tags/v0.0.1.tar.gz"
-  sha256 "dcd8f5ccbf2e1b74608a5d0b2b86e1a766c7904757a636fc14e3a1574c137d8f"
+  url "https://github.com/Bashta/FilesCombiner/archive/refs/tags/v0.0.2.tar.gz"
+  sha256 "24599eb25f5dffb27d18d2f0e0074dda328272c6c3a4ca560f84559dac593deb"
   license "MIT"
 
   depends_on xcode: ["15.0", :build]
