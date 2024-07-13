@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -20,6 +20,7 @@
 
 /* Begin PBXFileReference section */
 		427B64C52C42BED9008AA0BA /* SwiftFilesCombiner */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SwiftFilesCombiner; sourceTree = BUILT_PRODUCTS_DIR; };
+		427B64DD2C433134008AA0BA /* filescombiner.rb */ = {isa = PBXFileReference; lastKnownFileType = text.script.ruby; path = filescombiner.rb; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -40,6 +41,7 @@
 		427B64BC2C42BED9008AA0BA = {
 			isa = PBXGroup;
 			children = (
+				427B64DD2C433134008AA0BA /* filescombiner.rb */,
 				427B64C72C42BED9008AA0BA /* SwiftFilesCombiner */,
 				427B64C62C42BED9008AA0BA /* Products */,
 			);
