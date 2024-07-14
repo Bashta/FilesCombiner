@@ -11,13 +11,13 @@ import XCTest
 @testable import SwiftFilesCombiner
 
 class SwiftFilesCombinerTests: XCTestCase {
-    var mockFileSystem: MockFileSystemOperations!
+    var mockFileSystem: FileSystemOperationsMock!
     let baseDir = "/test"
     let outputFile = "/test/output.swift"
 
     override func setUp() {
         super.setUp()
-        mockFileSystem = MockFileSystemOperations()
+        mockFileSystem = FileSystemOperationsMock()
         mockFileSystem.directories.insert(baseDir)
     }
 
