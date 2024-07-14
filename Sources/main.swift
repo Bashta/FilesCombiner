@@ -38,33 +38,55 @@ func combineSwiftFiles(in directory: String, outputFile: String, fileSystem: Fil
     }
 }
 
-// Main execution
-let arguments = CommandLine.arguments
-let fileManager = FileManager.default
-
-let directoryPath: String
-let outputFile: String
-
-switch arguments.count {
-case 1: // No arguments provided
-    directoryPath = fileManager.currentDirectoryPath
-    outputFile = "combined_swift_files.swift"
-case 2: // Only output file provided
-    directoryPath = fileManager.currentDirectoryPath
-    outputFile = arguments[1]
-case 3: // Both directory and output file provided
-    directoryPath = arguments[1]
-    outputFile = arguments[2]
-default:
-    print("Usage: swift script.swift [<directory_path>] [<output_file>]")
-    print("If no arguments are provided, the current directory will be used and the output will be 'combined_swift_files.swift'")
-    exit(1)
+enum ArgumentError: Error {
+    case desktopNotFound
 }
 
+func parseArguments(_ args: [String], fileSystem: FileSystemOperations) throws -> (String, String) {
+    var directoryPath = FileManager.default.currentDirectoryPath
+    var outputFile = "combined_swift_files.swift"
+    var useDesktop = false
+    
+    var i = 0
+    while i < args.count {
+        switch args[i] {
+        case "-d", "--desktop":
+            useDesktop = true
+        default:
+            if args[i].hasPrefix("-") {
+                // Ignore unknown flags
+            } else if directoryPath == FileManager.default.currentDirectoryPath {
+                directoryPath = args[i]
+            } else if outputFile == "combined_swift_files.swift" {
+                outputFile = args[i]
+            }
+            // Ignore any additional arguments
+        }
+        i += 1
+    }
+    
+    if useDesktop {
+        guard let desktopPath = NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first else {
+            throw ArgumentError.desktopNotFound
+        }
+        outputFile = (desktopPath as NSString).appendingPathComponent(outputFile)
+    }
+    
+    return (directoryPath, outputFile)
+}
+
+// Main execution
 do {
     let realFileSystem = FileSystemOperationsImplemetation()
+    let args = Array(CommandLine.arguments.dropFirst()) // Remove the first argument (program name)
+    let (directoryPath, outputFile) = try parseArguments(args, fileSystem: realFileSystem)
+    
+    print("Input Directory: \(directoryPath)")
+    print("Output File: \(outputFile)")
+    
     try combineSwiftFiles(in: directoryPath, outputFile: outputFile, fileSystem: realFileSystem)
     print("Combined Swift files from '\(directoryPath)' have been written to '\(outputFile)'")
 } catch {
     print("An error occurred: \(error)")
+    exit(1)
 }

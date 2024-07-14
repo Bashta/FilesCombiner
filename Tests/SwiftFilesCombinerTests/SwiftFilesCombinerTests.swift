@@ -153,4 +153,61 @@ class SwiftFilesCombinerTests: XCTestCase {
         XCTAssertTrue(output.contains("Current directory file"))
         XCTAssertFalse(output.contains("Not a Swift file"))
     }
+    
+    // MARK: - Flags
+
+    func testOnlyFlagsProvided() throws {
+        let mockFileSystem = FileSystemOperationsMock()
+        let currentDir = FileManager.default.currentDirectoryPath
+        let desktopDir = NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first!
+        
+        mockFileSystem.directories.insert(currentDir)
+        mockFileSystem.directories.insert(desktopDir)
+        
+        let args = ["-d", "--unknown-flag"]
+        let (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        
+        XCTAssertEqual(inputDir, currentDir)
+        XCTAssertEqual(outputFile, "\(desktopDir)/combined_swift_files.swift")
+    }
+
+    func testUnknownFlags() throws {
+        let mockFileSystem = FileSystemOperationsMock()
+        let currentDir = FileManager.default.currentDirectoryPath
+        
+        mockFileSystem.directories.insert(currentDir)
+        
+        let args = ["--unknown-flag", "input_dir", "-another-unknown", "output.swift"]
+        let (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        
+        XCTAssertEqual(inputDir, "input_dir")
+        XCTAssertEqual(outputFile, "output.swift")
+    }
+
+    func testTooManyArguments() throws {
+        let mockFileSystem = FileSystemOperationsMock()
+        let currentDir = FileManager.default.currentDirectoryPath
+        
+        mockFileSystem.directories.insert(currentDir)
+        
+        let args = ["input_dir", "output.swift", "extra_arg1", "extra_arg2"]
+        let (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        
+        XCTAssertEqual(inputDir, "input_dir")
+        XCTAssertEqual(outputFile, "output.swift")
+        // Extra arguments are ignored
+    }
+    
+    func testSingleArgument() throws {
+        let mockFileSystem = FileSystemOperationsMock()
+        let currentDir = FileManager.default.currentDirectoryPath
+        
+        mockFileSystem.directories.insert(currentDir)
+        
+        let args = ["input_dir"]
+        let (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        
+        XCTAssertEqual(inputDir, "input_dir")
+        XCTAssertEqual(outputFile, "combined_swift_files.swift")
+    }
 }
