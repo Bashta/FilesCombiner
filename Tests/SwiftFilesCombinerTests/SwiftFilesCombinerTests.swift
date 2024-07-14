@@ -132,4 +132,25 @@ class SwiftFilesCombinerTests: XCTestCase {
         let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
         XCTAssertTrue(output.isEmpty)
     }
+    
+    func testCurrentDirectoryAsInput() throws {
+        // Setup the mock file system with the current directory
+        let currentDir = FileManager.default.currentDirectoryPath
+        mockFileSystem.directories.insert(currentDir)
+        mockFileSystem.files = [
+            "\(currentDir)/file1.swift": "print(\"Current directory file\")",
+            "\(currentDir)/file2.txt": "Not a Swift file"
+        ]
+        mockFileSystem.enumeratorPaths = ["file1.swift", "file2.txt"]
+        
+        let outputFile = "\(currentDir)/output.swift"
+        
+        // Call combineSwiftFiles without specifying a directory
+        try combineSwiftFiles(in: currentDir, outputFile: outputFile, fileSystem: mockFileSystem)
+        
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.contains("Current directory file"))
+        XCTAssertFalse(output.contains("Not a Swift file"))
+    }
 }

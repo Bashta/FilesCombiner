@@ -39,18 +39,32 @@ func combineSwiftFiles(in directory: String, outputFile: String, fileSystem: Fil
 }
 
 // Main execution
-guard CommandLine.arguments.count == 3 else {
-    print("Usage: swift script.swift <directory_path> <output_file>")
+let arguments = CommandLine.arguments
+let fileManager = FileManager.default
+
+let directoryPath: String
+let outputFile: String
+
+switch arguments.count {
+case 1: // No arguments provided
+    directoryPath = fileManager.currentDirectoryPath
+    outputFile = "combined_swift_files.swift"
+case 2: // Only output file provided
+    directoryPath = fileManager.currentDirectoryPath
+    outputFile = arguments[1]
+case 3: // Both directory and output file provided
+    directoryPath = arguments[1]
+    outputFile = arguments[2]
+default:
+    print("Usage: swift script.swift [<directory_path>] [<output_file>]")
+    print("If no arguments are provided, the current directory will be used and the output will be 'combined_swift_files.swift'")
     exit(1)
 }
-
-let directoryPath = CommandLine.arguments[1]
-let outputFile = CommandLine.arguments[2]
 
 do {
     let realFileSystem = FileSystemOperationsImplemetation()
     try combineSwiftFiles(in: directoryPath, outputFile: outputFile, fileSystem: realFileSystem)
-    print("Combined Swift files have been written to \(outputFile)")
+    print("Combined Swift files from '\(directoryPath)' have been written to '\(outputFile)'")
 } catch {
     print("An error occurred: \(error)")
 }
