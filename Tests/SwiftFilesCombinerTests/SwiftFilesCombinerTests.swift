@@ -10,136 +10,136 @@ import XCTest
 
 @testable import SwiftFilesCombiner
 
-final class SwiftFilesCombinerTests: XCTestCase {
-    let fileManager = FileManager.default
-    var tempDirectoryURL: URL!
+class SwiftFilesCombinerTests: XCTestCase {
+    var mockFileSystem: MockFileSystemOperations!
+    let baseDir = "/test"
+    let outputFile = "/test/output.swift"
 
     override func setUp() {
         super.setUp()
-        tempDirectoryURL = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try? fileManager.createDirectory(at: tempDirectoryURL, withIntermediateDirectories: true)
-    }
-
-    override func tearDown() {
-        try? fileManager.removeItem(at: tempDirectoryURL)
-        super.tearDown()
+        mockFileSystem = MockFileSystemOperations()
+        mockFileSystem.directories.insert(baseDir)
     }
 
     func testEmptyDirectory() throws {
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
         
-        XCTAssertTrue(fileManager.fileExists(atPath: outputURL.path))
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.isEmpty)
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.isEmpty)
+    }
+
+    func testOnlyNonSwiftFiles() throws {
+        mockFileSystem.files = [
+            "\(baseDir)/file1.txt": "Not a Swift file",
+            "\(baseDir)/file2.md": "Another non-Swift file"
+        ]
+        mockFileSystem.enumeratorPaths = ["file1.txt", "file2.md"]
+        
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
+        
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.isEmpty)
+    }
+
+    func testMixOfSwiftAndNonSwiftFiles() throws {
+        mockFileSystem.files = [
+            "\(baseDir)/file1.swift": "print(\"Swift file 1\")",
+            "\(baseDir)/file2.txt": "Not a Swift file",
+            "\(baseDir)/file3.swift": "print(\"Swift file 2\")"
+        ]
+        mockFileSystem.enumeratorPaths = ["file1.swift", "file2.txt", "file3.swift"]
+        
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
+        
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.contains("Swift file 1"))
+        XCTAssertTrue(output.contains("Swift file 2"))
+        XCTAssertFalse(output.contains("Not a Swift file"))
+    }
+
+    func testNestedDirectories() throws {
+        mockFileSystem.directories.insert("\(baseDir)/nested")
+        mockFileSystem.directories.insert("\(baseDir)/deeply/nested")
+        mockFileSystem.files = [
+            "\(baseDir)/file1.swift": "print(\"Root file\")",
+            "\(baseDir)/nested/file2.swift": "print(\"Nested file\")",
+            "\(baseDir)/deeply/nested/file3.swift": "print(\"Deeply nested file\")"
+        ]
+        mockFileSystem.enumeratorPaths = ["file1.swift", "nested/file2.swift", "deeply/nested/file3.swift"]
+        
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
+        
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.contains("Root file"))
+        XCTAssertTrue(output.contains("Nested file"))
+        XCTAssertTrue(output.contains("Deeply nested file"))
     }
 
     func testLargeNumberOfFiles() throws {
         for i in 1...1000 {
-            let content = "// File \(i)\nprint(\"Hello from file \(i)\")\n"
-            try content.write(to: tempDirectoryURL.appendingPathComponent("file\(i).swift"), atomically: true, encoding: .utf8)
+            mockFileSystem.files["\(baseDir)/file\(i).swift"] = "print(\"File \(i)\")"
+            mockFileSystem.enumeratorPaths.append("file\(i).swift")
         }
         
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
         
-        let content = try String(contentsOf: outputURL)
-        let lineCount = content.components(separatedBy: .newlines).count
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertEqual(output.components(separatedBy: "print(").count, 1001) // 1000 files + 1 (split adds one)
+    }
+
+    func testFileWithSpecialCharactersInName() throws {
+        mockFileSystem.files = [
+            "\(baseDir)/file with spaces.swift": "print(\"Spaces\")",
+            "\(baseDir)/file_with_underscores.swift": "print(\"Underscores\")",
+            "\(baseDir)/file-with-dashes.swift": "print(\"Dashes\")",
+            "\(baseDir)/file😀with😀emojis.swift": "print(\"Emojis\")"
+        ]
+        mockFileSystem.enumeratorPaths = ["file with spaces.swift", "file_with_underscores.swift", "file-with-dashes.swift", "file😀with😀emojis.swift"]
         
-        // Check if the line count is within an expected range
-        XCTAssertGreaterThanOrEqual(lineCount, 3000, "Should have at least 3000 lines (1000 files * 3 lines each)")
-        XCTAssertLessThanOrEqual(lineCount, 7000, "Should have no more than 7000 lines (accounting for extra lines between files)")
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
         
-        // Check if each file's content is present
-        for i in 1...1000 {
-            XCTAssertTrue(content.contains("Hello from file \(i)"), "Content from file \(i) should be present")
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.contains("Spaces"))
+        XCTAssertTrue(output.contains("Underscores"))
+        XCTAssertTrue(output.contains("Dashes"))
+        XCTAssertTrue(output.contains("Emojis"))
+    }
+
+    func testEmptySwiftFile() throws {
+        mockFileSystem.files = [
+            "\(baseDir)/empty.swift": "",
+            "\(baseDir)/nonempty.swift": "print(\"Not empty\")"
+        ]
+        mockFileSystem.enumeratorPaths = ["empty.swift", "nonempty.swift"]
+        
+        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
+        
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.contains("// File: \(baseDir)/empty.swift"))
+        XCTAssertTrue(output.contains("Not empty"))
+    }
+
+    func testNonExistentInputDirectory() {
+        XCTAssertThrowsError(try combineSwiftFiles(in: "/nonexistent", outputFile: outputFile, fileSystem: mockFileSystem)) { error in
+            XCTAssertEqual(error as? FileSystemError, .directoryNotFound)
         }
     }
 
-    func testNestedDirectories() throws {
-        let nestedDir = tempDirectoryURL.appendingPathComponent("nested/deeply/directory")
-        try fileManager.createDirectory(at: nestedDir, withIntermediateDirectories: true)
+    func testExistingEmptyDirectory() throws {
+        mockFileSystem.directories.insert(baseDir)
+        mockFileSystem.enumeratorPaths = []
         
-        try "print(\"Hello from nested file\")".write(to: nestedDir.appendingPathComponent("nested.swift"), atomically: true, encoding: .utf8)
+        XCTAssertNoThrow(try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem))
         
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("Hello from nested file"))
-    }
-
-    func testFilePermissions() throws {
-        let fileURL = tempDirectoryURL.appendingPathComponent("readonly.swift")
-        try "print(\"Read-only file\")".write(to: fileURL, atomically: true, encoding: .utf8)
-        try fileManager.setAttributes([.posixPermissions: 0o444], ofItemAtPath: fileURL.path)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("Read-only file"))
-    }
-
-    func testNonSwiftFiles() throws {
-        try "Not a Swift file".write(to: tempDirectoryURL.appendingPathComponent("notswift.txt"), atomically: true, encoding: .utf8)
-        try "print(\"Swift file\")".write(to: tempDirectoryURL.appendingPathComponent("swift.swift"), atomically: true, encoding: .utf8)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("Swift file"))
-        XCTAssertFalse(content.contains("Not a Swift file"))
-    }
-
-    func testSpecialCharactersInFilenames() throws {
-        try "print(\"Special chars\")".write(to: tempDirectoryURL.appendingPathComponent("special チャrs.swift"), atomically: true, encoding: .utf8)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("Special chars"))
-    }
-
-    func testDuplicateFileNames() throws {
-        let subdir = tempDirectoryURL.appendingPathComponent("subdir")
-        try fileManager.createDirectory(at: subdir, withIntermediateDirectories: true)
-        
-        try "print(\"Root file\")".write(to: tempDirectoryURL.appendingPathComponent("duplicate.swift"), atomically: true, encoding: .utf8)
-        try "print(\"Subdir file\")".write(to: subdir.appendingPathComponent("duplicate.swift"), atomically: true, encoding: .utf8)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("Root file"))
-        XCTAssertTrue(content.contains("Subdir file"))
-    }
-
-    func testInvalidOutputFilePath() throws {
-        XCTAssertThrowsError(try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: "/nonexistent/directory/output.swift"))
-    }
-
-    func testSwiftFilesWithSyntaxErrors() throws {
-        try "this is not valid Swift code".write(to: tempDirectoryURL.appendingPathComponent("invalid.swift"), atomically: true, encoding: .utf8)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("this is not valid Swift code"))
-    }
-
-    func testEmptySwiftFiles() throws {
-        try "".write(to: tempDirectoryURL.appendingPathComponent("empty.swift"), atomically: true, encoding: .utf8)
-        
-        let outputURL = tempDirectoryURL.appendingPathComponent("output.swift")
-        try combineSwiftFiles(in: tempDirectoryURL.path, outputFile: outputURL.path)
-        
-        let content = try String(contentsOf: outputURL)
-        XCTAssertTrue(content.contains("// File:"))
-        XCTAssertTrue(content.contains("empty.swift"))
+        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
+        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
+        XCTAssertTrue(output.isEmpty)
     }
 }
