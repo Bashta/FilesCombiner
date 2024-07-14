@@ -27,13 +27,20 @@ Where:
 ```
 # Uses current directory, outputs to current directory
 swiftfilescombiner
-
+```
+```
 # Uses current directory, outputs to desktop
 swiftfilescombiner -d
+```
+```
 # Uses specified input directory, outputs to desktop
 swiftfilescombiner input_dir -d
+```
+```
 # Uses current directory, outputs to desktop with specified filename
 swiftfilescombiner -d output.swift
+```
+```
 # Uses specified input and output, but puts output on desktop
 swiftfilescombiner input_dir output.swift -d
 ```
