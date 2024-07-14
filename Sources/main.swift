@@ -66,7 +66,7 @@ func parseArguments(_ args: [String], fileSystem: FileSystemOperations) throws -
     }
     
     if useDesktop {
-        guard let desktopPath = NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first else {
+        guard let desktopPath = fileSystem.getDesktopPath() else {
             throw ArgumentError.desktopNotFound
         }
         outputFile = (desktopPath as NSString).appendingPathComponent(outputFile)

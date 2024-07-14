@@ -210,4 +210,38 @@ class SwiftFilesCombinerTests: XCTestCase {
         XCTAssertEqual(inputDir, "input_dir")
         XCTAssertEqual(outputFile, "combined_swift_files.swift")
     }
+    
+    func testDesktopFlag() throws {
+        let mockFileSystem = FileSystemOperationsMock()
+        let currentDir = FileManager.default.currentDirectoryPath
+        let desktopDir = "/Users/testuser/Desktop"  // Use a fixed path for testing
+        
+        mockFileSystem.directories.insert(currentDir)
+        mockFileSystem.directories.insert(desktopDir)
+        mockFileSystem.desktopPathOverride = desktopDir
+        
+        // Test with -d flag
+        var args = ["-d"]
+        var (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        XCTAssertEqual(inputDir, currentDir)
+        XCTAssertEqual(outputFile, "\(desktopDir)/combined_swift_files.swift")
+        
+        // Test with --desktop flag
+        args = ["--desktop"]
+        (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        XCTAssertEqual(inputDir, currentDir)
+        XCTAssertEqual(outputFile, "\(desktopDir)/combined_swift_files.swift")
+        
+        // Test with custom input directory and desktop flag
+        args = ["custom_input", "-d"]
+        (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        XCTAssertEqual(inputDir, "custom_input")
+        XCTAssertEqual(outputFile, "\(desktopDir)/combined_swift_files.swift")
+        
+        // Test with custom input, custom output, and desktop flag
+        args = ["custom_input", "custom_output.swift", "--desktop"]
+        (inputDir, outputFile) = try parseArguments(args, fileSystem: mockFileSystem)
+        XCTAssertEqual(inputDir, "custom_input")
+        XCTAssertEqual(outputFile, "\(desktopDir)/custom_output.swift")
+    }
 }
