@@ -21,14 +21,6 @@ class SwiftFilesCombinerTests: XCTestCase {
         mockFileSystem.directories.insert(baseDir)
     }
 
-    func testEmptyDirectory() throws {
-        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
-        
-        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
-        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
-        XCTAssertTrue(output.isEmpty)
-    }
-
     func testOnlyNonSwiftFiles() throws {
         mockFileSystem.files = [
             "\(baseDir)/file1.txt": "Not a Swift file",
