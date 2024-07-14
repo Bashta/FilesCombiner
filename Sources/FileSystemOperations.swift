@@ -54,7 +54,7 @@ class FileSystemOperationsImplemetation: FileSystemOperations {
 
 // MARK: - Mock Implementation
 
-class MockFileSystemOperations: FileSystemOperations {
+class FileSystemOperationsMock: FileSystemOperations {
     var files: [String: String] = [:]
     var enumeratorPaths: [String] = []
     var directories: Set<String> = []

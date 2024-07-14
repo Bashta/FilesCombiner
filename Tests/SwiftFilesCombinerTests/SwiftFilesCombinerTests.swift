@@ -11,22 +11,15 @@ import XCTest
 @testable import SwiftFilesCombiner
 
 class SwiftFilesCombinerTests: XCTestCase {
-    var mockFileSystem: MockFileSystemOperations!
+    var mockFileSystem: FileSystemOperationsMock!
     let baseDir = "/test"
     let outputFile = "/test/output.swift"
 
     override func setUp() {
         super.setUp()
-        mockFileSystem = MockFileSystemOperations()
+        mockFileSystem = FileSystemOperationsMock()
         mockFileSystem.directories.insert(baseDir)
-    }
-
-    func testEmptyDirectory() throws {
-        try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem)
-        
-        XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
-        let output = try mockFileSystem.contentsOfFile(atPath: outputFile)
-        XCTAssertTrue(output.isEmpty)
+        mockFileSystem.enumeratorPaths = []
     }
 
     func testOnlyNonSwiftFiles() throws {
@@ -133,9 +126,6 @@ class SwiftFilesCombinerTests: XCTestCase {
     }
 
     func testExistingEmptyDirectory() throws {
-        mockFileSystem.directories.insert(baseDir)
-        mockFileSystem.enumeratorPaths = []
-        
         XCTAssertNoThrow(try combineSwiftFiles(in: baseDir, outputFile: outputFile, fileSystem: mockFileSystem))
         
         XCTAssertTrue(mockFileSystem.fileExists(atPath: outputFile))
