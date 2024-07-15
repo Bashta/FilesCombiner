@@ -7,7 +7,6 @@
 
 import Foundation
 
-// Function to combine Swift files
 func combineSwiftFiles(in directory: String, outputFile: String, fileSystem: FileSystemOperations) throws {
     guard fileSystem.directoryExists(atPath: directory) else {
         throw FileSystemError.directoryNotFound
@@ -17,25 +16,31 @@ func combineSwiftFiles(in directory: String, outputFile: String, fileSystem: Fil
         throw FileSystemError.failedToCreateEnumerator
     }
     
-    var combinedContent = ""
-
-    while let filePath = enumerator.nextObject() as? String {
-        if filePath.hasSuffix(".swift") {
-            let fullPath = (directory as NSString).appendingPathComponent(filePath)
-            combinedContent += "\n\n// File: \(fullPath)\n\n"
-            do {
-                let content = try fileSystem.contentsOfFile(atPath: fullPath)
-                combinedContent += content
-            } catch {
-                print("Error reading file \(fullPath): \(error)")
-            }
-        }
-    }
+    var combinedContent = readCombinedContent(in: directory, enumerator: enumerator, fileSystem: fileSystem)
 
     let outputData = combinedContent.data(using: .utf8)
     if !fileSystem.createFile(atPath: outputFile, contents: outputData, attributes: nil) {
         throw FileSystemError.failedToWriteFile
     }
+}
+
+func readCombinedContent(in directory: String, enumerator: FileManager.DirectoryEnumerator, fileSystem: FileSystemOperations) -> String {
+    var result = ""
+    
+    while let filePath = enumerator.nextObject() as? String {
+        if filePath.hasSuffix(".swift") {
+            let fullPath = (directory as NSString).appendingPathComponent(filePath)
+            result += "\n\n// File: \(fullPath)\n\n"
+            do {
+                let content = try fileSystem.contentsOfFile(atPath: fullPath)
+                result += content
+            } catch {
+                print("Error reading file \(fullPath): \(error)")
+            }
+        }
+    }
+    
+    return result
 }
 
 enum ArgumentError: Error {
