@@ -15,6 +15,7 @@ protocol FileSystemOperations {
     func createFile(atPath path: String, contents data: Data?, attributes attr: [FileAttributeKey : Any]?) -> Bool
     func fileExists(atPath path: String) -> Bool
     func directoryExists(atPath path: String) -> Bool
+    func getDesktopPath() -> String?
 }
 
 enum FileSystemError: Error, Equatable {
@@ -50,6 +51,10 @@ class FileSystemOperationsImplemetation: FileSystemOperations {
         let exists = fileManager.fileExists(atPath: path, isDirectory: &isDirectory)
         return exists && isDirectory.boolValue
     }
+    
+    func getDesktopPath() -> String? {
+        return NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first
+    }
 }
 
 // MARK: - Mock Implementation
@@ -58,6 +63,7 @@ class FileSystemOperationsMock: FileSystemOperations {
     var files: [String: String] = [:]
     var enumeratorPaths: [String] = []
     var directories: Set<String> = []
+    var desktopPathOverride: String?
     
     func enumerator(atPath path: String) -> FileManager.DirectoryEnumerator? {
         return MockDirectoryEnumerator(paths: enumeratorPaths)
@@ -84,6 +90,10 @@ class FileSystemOperationsMock: FileSystemOperations {
     
     func directoryExists(atPath path: String) -> Bool {
         return directories.contains(path)
+    }
+    
+    func getDesktopPath() -> String? {
+            return desktopPathOverride ?? NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true).first
     }
 }
 
